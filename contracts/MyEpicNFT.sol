@@ -2,42 +2,104 @@
 
 pragma solidity ^0.8.0;
 
+
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
 
-/*
-    Thanks to that inherit contract from ERC721URIStorage,
-    We can call other contracts from ours. It's almost like importing functions for us to use.
-*/
+import { Base64 } from "./libraries/Base64.sol";
+
 contract MyEpicNFT is ERC721URIStorage {
+  using Counters for Counters.Counter;
+  Counters.Counter private _tokenIds;
 
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+  // We split the SVG at the part where it asks for the background color.
+  string svgPartOne = "<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMinYMin meet' viewBox='0 0 350 350'><style>.base { fill: white; font-family: serif; font-size: 24px; }</style><rect width='100%' height='100%' fill='";
+  string svgPartTwo = "'/><text x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
 
-/*
-    The NFT standard is known as ERC721 which you can read a bit about here => https://eips.ethereum.org/EIPS/eip-721
-    OpenZeppelin essentially implements the NFT standard for us and then lets us write our own logic on top of it to customize it.
-    That means we don't need to write boiler plate code.
-*/
-    constructor() ERC721 ("SquareNFT", "SQUARE"){
-        console.log("This is my first NFT contract. Woha!");
-    }
+  string[] firstWords = ["Happy_", "Fun_", "Epic_", "Disaster_", "Slayer_", "Fighter_"];
+  string[] secondWords = ["Mage_", "Priest_", "Warrior_", "Lock_", "Paladin_", "Hunter_"];
+  string[] thirdWords = ["Gnome", "Dwarf", "Orc", "Tauren", "Troll", "Human"];
 
-    function makeAnEpicNFT() public {
-        // Using the _tokenIds to keep track of the NFTs unique identifier.
-        uint256 newItemId = _tokenIds.current();
+  // Get fancy with it! Declare a bunch of colors.
+  string[] colors = ["red", "#08C2A8", "black", "yellow", "blue", "green"];
 
-        /*
-            When we do _safeMint(msg.sender, newItemId) it's pretty much saying: "mint the NFT with id newItemId to the user with address msg.sender".
-            Here, msg.sender is a variable Solidity itself provides that easily gives us access to the public address of the person calling the contract.
-        */
-        _safeMint(msg.sender, newItemId);
+  event NewEpicNFTMinted(address sender, uint256 tokenId);
 
-        // Adding the unique identifier and the data associated to the NFT.
-        _setTokenURI(newItemId, "https://jsonkeeper.com/b/D9OP");
-        console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
+  constructor() ERC721 ("SquareNFT", "SQUARE") {
+    console.log("This is my NFT contract. Woah!");
+  }
 
-        _tokenIds.increment();
-    }
+  function pickRandomFirstWord(uint256 tokenId) public view returns (string memory) {
+    uint256 rand = random(string(abi.encodePacked("FIRST_WORD", Strings.toString(tokenId))));
+    rand = rand % firstWords.length;
+    return firstWords[rand];
+  }
+
+  function pickRandomSecondWord(uint256 tokenId) public view returns (string memory) {
+    uint256 rand = random(string(abi.encodePacked("SECOND_WORD", Strings.toString(tokenId))));
+    rand = rand % secondWords.length;
+    return secondWords[rand];
+  }
+
+  function pickRandomThirdWord(uint256 tokenId) public view returns (string memory) {
+    uint256 rand = random(string(abi.encodePacked("THIRD_WORD", Strings.toString(tokenId))));
+    rand = rand % thirdWords.length;
+    return thirdWords[rand];
+  }
+
+  // Same old stuff, pick a random color.
+  function pickRandomColor(uint256 tokenId) public view returns (string memory) {
+    uint256 rand = random(string(abi.encodePacked("COLOR", Strings.toString(tokenId))));
+    rand = rand % colors.length;
+    return colors[rand];
+  }
+
+  function random(string memory input) internal pure returns (uint256) {
+    return uint256(keccak256(abi.encodePacked(input)));
+  }
+
+  function makeAnEpicNFT() public {
+    uint256 newItemId = _tokenIds.current();
+
+    string memory first = pickRandomFirstWord(newItemId);
+    string memory second = pickRandomSecondWord(newItemId);
+    string memory third = pickRandomThirdWord(newItemId);
+    string memory combinedWord = string(abi.encodePacked(first, second, third));
+
+    // Add the random color in.
+    string memory randomColor = pickRandomColor(newItemId);
+    string memory finalSvg = string(abi.encodePacked(svgPartOne, randomColor, svgPartTwo, combinedWord, "</text></svg>"));
+
+    string memory json = Base64.encode(
+        bytes(
+            string(
+                abi.encodePacked(
+                    '{"name": "',
+                    combinedWord,
+                    '", "description": "A highly acclaimed collection of squares.", "image": "data:image/svg+xml;base64,',
+                    Base64.encode(bytes(finalSvg)),
+                    '"}'
+                )
+            )
+        )
+    );
+
+    string memory finalTokenUri = string(
+        abi.encodePacked("data:application/json;base64,", json)
+    );
+
+    console.log("\n--------------------");
+    console.log(finalTokenUri);
+    console.log("--------------------\n");
+
+    _safeMint(msg.sender, newItemId);
+
+    _setTokenURI(newItemId, finalTokenUri);
+
+    _tokenIds.increment();
+    console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
+    emit NewEpicNFTMinted(msg.sender, newItemId);
+  }
 }

@@ -7,9 +7,9 @@ To run a contract we need to:
 This script will do this 3 things for us
 */
 
-// * VSCode autoimport ethers, we don't need to do this
+// ! This script is just to run our code. To test it. When we deploy this to the testnet, we will use another script.
 
-const { hexZeroPad } = require('@ethersproject/bytes')
+// * VSCode autoimport ethers, we don't need to do this
 
 // * First main function
 // const main = async () => {

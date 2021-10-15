@@ -1,16 +1,11 @@
 require('@nomiclabs/hardhat-waffle')
 
-task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
-    const accounts = await hre.ethers.getSigners()
-
-    for (const account of accounts) {
-        console.log(account.address)
-    }
-})
-
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
 module.exports = {
     solidity: '0.8.0',
+    networks: {
+        rinkeby: {
+            url: 'https://eth-rinkeby.alchemyapi.io/v2/oU_d40Vy8rZzxyb7Q6tqj0rCIYsBw31s',
+            accounts: ['8790a81f5fa8f572c9f388b478feac1a88687d50e2ed81134e75eca3e3dda5b3'],
+        },
+    },
 }
